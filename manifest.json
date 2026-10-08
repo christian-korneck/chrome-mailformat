@@ -1,0 +1,9 @@
+{
+  "manifest_version": 3,
+  "name": "mailformat",
+  "version": "1.0",
+  "description": "Wrap and quote selected text for mailing list replies.",
+  "permissions": ["contextMenus", "scripting", "activeTab", "storage"],
+  "background": { "service_worker": "background.js" },
+  "options_ui": { "page": "options.html" }
+}
