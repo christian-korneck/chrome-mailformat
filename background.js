@@ -1,4 +1,4 @@
-const ITEMS = { wrap: 'Wrap', quote: 'Quote', both: 'Wrap + Quote' };
+const ITEMS = { wrap: 'Wrap', quote: 'Quote', unquote: 'Unquote', both: 'Wrap + Quote' };
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({ id: 'mailformat', title: 'mailformat', contexts: ['editable'] });
@@ -6,13 +6,19 @@ chrome.runtime.onInstalled.addListener(() => {
     chrome.contextMenus.create({ id, title, parentId: 'mailformat', contexts: ['editable'] });
 });
 
-chrome.contextMenus.onClicked.addListener(async (info, tab) => {
+async function run(target, mode) {
   const { width = 72 } = await chrome.storage.sync.get('width');
-  chrome.scripting.executeScript({
-    target: { tabId: tab.id, frameIds: [info.frameId] },
-    func: apply,
-    args: [info.menuItemId, width],
-  });
+  await chrome.scripting.executeScript({ target, func: apply, args: [mode, width] });
+}
+
+chrome.contextMenus.onClicked.addListener((info, tab) =>
+  run({ tabId: tab.id, frameIds: [info.frameId] }, info.menuItemId));
+
+// From the toolbar popup, for sites that block the context menu.
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) =>
+    run({ tabId: tab.id, allFrames: true }, msg.mode).finally(sendResponse));
+  return true;
 });
 
 // Injected into the page; must be self-contained.
@@ -35,6 +41,8 @@ function apply(mode, width) {
   const quote = text => text.split('\n')
     .map(l => l === '' ? '>' : l.startsWith('>') ? '>' + l : '> ' + l).join('\n');
 
+  const unquote = text => text.split('\n').map(l => l.replace(/^> ?/, '')).join('\n');
+
   const el = document.activeElement;
   const text = el && 'selectionStart' in el && el.value !== undefined
     ? el.value.slice(el.selectionStart, el.selectionEnd)
@@ -43,8 +51,10 @@ function apply(mode, width) {
 
   const out = mode === 'wrap' ? wrap(text, width)
     : mode === 'quote' ? quote(text)
+    : mode === 'unquote' ? unquote(text)
     : quote(wrap(text, width - 2));
 
+  el.focus();
   if (!document.execCommand('insertText', false, out) && el.setRangeText)
     el.setRangeText(out, el.selectionStart, el.selectionEnd, 'select');
 }

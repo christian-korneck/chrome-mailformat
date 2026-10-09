@@ -7,7 +7,10 @@ Select text in any text box, right-click -> **mailformat**:
 - **Wrap** — hard-wrap to the text width, keeping existing line breaks
   (quoted lines keep their `>` prefix)
 - **Quote** — prefix every line with `> ` (`>>` for already-quoted lines)
+- **Unquote** — remove one level of `>` (lines without one are untouched)
 - **Wrap + Quote** — wrap, then quote; lines stay within the text width
+
+If a site blocks the context menu, click the toolbar icon instead.
 
 Text width defaults to 72 and can be changed in the extension options.
 
